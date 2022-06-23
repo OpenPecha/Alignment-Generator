@@ -3,41 +3,41 @@ from openpecha.core.pecha import OpenPechaFS
 from openpecha.core.metadata import InitialPechaMetadata,InitialCreationType
 from openpecha.core.annotation import Page, Span
 from openpecha.core.layer import Layer, LayerEnum
-from openpecha import github_utils
-from openpecha.core.ids import get_initial_pecha_id,get_base_id
+from openpecha.core.ids import get_base_id
 from pathlib import Path
-from bs4 import BeautifulSoup
-from pyparsing import col
-import requests
-import os
+from create_opa import create_opa
 import re
-import logging
-
-
 
 def convert_text_to_list(text):
-    text_list = text.split("\n\n")
+    text_list = re.split("\n\n",text)
     return text_list
 
 def get_text(path):
-    text = Path(path).read_text()
+    with open(path,encoding="utf-8") as f:
+        text = f.read()
     return text
 
 def create_opf(text):
     base_id = get_base_id()
+    layers,segment_annotaions = get_layers(text,base_id)
+
     opf = OpenPechaFS(
         base= {base_id:text},
-        layers = get_layers(text,base_id),
+        layers = layers,
         meta = get_metadata()
     )
-    opf.save(output_path="./root")
+    opf_path = opf.save(output_path="./opf")
+    return segment_annotaions,opf_path.stem
 
 def get_layers(text,base_id):
     layers = {}
+    segmentation_annotaions = {}
+    segmentation_layer,segment_annotation = get_segmentation_layers(text)
     layers[base_id] = {
-        LayerEnum.segment : get_segmentation_layers(text)
+        LayerEnum.segment : segmentation_layer
     }
-    return layers
+    segmentation_annotaions.update({base_id:segment_annotation})
+    return layers,segment_annotation
 
 def get_segmentation_layers(text):
     segment_annotations = {}
@@ -51,7 +51,7 @@ def get_segmentation_layers(text):
     segmentation_layer = Layer(
         annotation_type=LayerEnum.segment,annotations=segment_annotations
     ) 
-    return segmentation_layer
+    return segmentation_layer,segment_annotations
 
 def get_segment_annotation(text,char_walker):
     segment_annotation = {
@@ -79,15 +79,15 @@ def is_aligned(text1,text2):
 
 
 def main():
-    root_path = "chojuk-alignement/Tupten Choedak/Root1.txt"
-    commentary_path = "chojuk-alignement/Tupten Choedak/Description1.txt"
+    root_path = "chojuk-alignement/D3874/རྩ་བ།.txt"
+    commentary_path = "chojuk-alignement/D3874/འགྲེལ་བ།.txt"
     root_text = get_text(root_path)
     commentary_text = get_text(commentary_path)
-    create_opf(root_text)
-    create_opf(commentary_text)
+    root_id_segmnt_map = create_opf(root_text)
+    commentary_id_segmnt_map = create_opf(commentary_text)
     if is_aligned(root_text,commentary_text):
         print("Creating OPA")
-        
+        create_opa(root_id_segmnt_map,commentary_id_segmnt_map)
 
 if __name__ == "__main__":
     main()

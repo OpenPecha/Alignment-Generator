@@ -19,7 +19,7 @@
 
 ## Description
 
-Returns Text2Text Alignment json from using opf and opa
+Returns Text2Text Alignment json from opf and opa
 
 ## Owner
 
