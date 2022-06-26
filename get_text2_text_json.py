@@ -6,17 +6,20 @@ from pathlib import Path
 from create_opa import from_yaml
 
 def get_alignments(alignment_id):
-    opa_dir = "./opa"
+    opa_dir = "./root/opas"
     opas = list(Path(opa_dir).iterdir())
     for opa in opas:
         view = get_alignment_pairs(opa,alignment_id)  
         return view  
 
 def get_alignment_pairs(opa,alignment_id):
-    alignment_path = Path(f"{opa}/{opa.stem}.opa/Alignment.yml")
-    alignments = from_yaml(alignment_path)
-    if json_view :=is_alignment_present(alignment_id,alignments):
-        return json_view
+    bases = list(Path(f"{opa}/{opa.stem}.opa").iterdir())
+
+    for base in bases:
+        alignment_path = Path(f"{base}/Alignment.yml")
+        alignments = from_yaml(alignment_path)
+        if json_view :=is_alignment_present(alignment_id,alignments):
+            return json_view
     return      
 
 def is_alignment_present(alignment_id,alignments):
@@ -29,31 +32,25 @@ def is_alignment_present(alignment_id,alignments):
             return json_view
 
 def get_json_view(seg_pair,seg_id):
-    source_id,target_id = seg_pair.keys()
-    source_span = get_span(source_id,seg_pair)
-    target_span = get_span(target_id,seg_pair)
-
+    alignments = {}
     view = {
         "id":seg_id,
-        "source":source_id,
-        "target":target_id,
-        "type":"text",
-        "alignments":{
-        "source_segment":{
-            "start":source_span["start"],
-            "end":source_span["end"]
-        },
-        "target_segment":{
-            "start":target_span["start"],
-            "end":target_span["end"]
-        }
+        "type":"text"
     }
-    }
+    for id in seg_pair.keys():
+        source_span = get_span(id,seg_pair)
+        alignment = {
+            seg_pair[id]:{
+                "start":source_span[0],
+                "end":source_span[1]
+            }}
+        alignments.update(alignment)
+    view["alignment"] =  alignments
 
     return view
 
 def get_span(pecha_id,seg_pair):
-    opf_dir = "./opf"
+    opf_dir = "./root/opfs"
     opfs = list(Path(opf_dir).iterdir())
     for opf in opfs:
         if opf.stem == pecha_id:
@@ -70,15 +67,16 @@ def retrieve_span(opf,seg_pair,pecha_id):
             continue
         else:
             span = annotations[seg_id]["span"]
-            #text = get_base_text(span,opf,base_file)
-            return span
+            text = get_base_text(span,opf,base_file)
+            return [text,text]
     return
 
 def get_base_text(span,opf,base_file):
-    start,end = span
-    base_file_path = f"{opf}/{opf.stem}/{base_file}.txt"
+    start= span["start"]
+    end = span["end"]
+    base_file_path = f"{opf}/{opf.stem}.opf/base/{base_file}.txt"
     base_text = Path(base_file_path).read_text()
-
+    print(base_file_path)
     return base_text[start:end]
 
 
@@ -90,6 +88,6 @@ def get_layers(opf):
         yield segment_yml,layer.stem
 
 if __name__ == "__main__":
-    alignment_id ="de29d0fa5ee64954b2ace4bdc5664eef"
+    alignment_id ="1abfb4adf7c0403c84965af9a00f65f2"
     view = get_alignments(alignment_id)
     print(view)
