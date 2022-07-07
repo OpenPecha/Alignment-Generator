@@ -1,3 +1,4 @@
+from email.mime import base
 from uuid import uuid4
 from openpecha.core.pecha import OpenPechaFS
 from openpecha.core.metadata import InitialPechaMetadata,InitialCreationType
@@ -9,20 +10,29 @@ from create_opa import create_opa
 import re
 
 def convert_text_to_list(text):
-    text_list = re.split("\n\n",text)
+    text_list = re.split("\n+",text)
     return text_list
 
 def get_text(path):
     with open(path,encoding="utf-8") as f:
         text = f.read()
-    return text
+    text_list = convert_text_to_list(text)
+    return text_list
+
+def get_base_text(text_list):
+    base_text = ""
+    for text in text_list:
+        base_text+=text+"\n"
+
+    return base_text[:-1]
 
 def create_opf(text):
     base_id = get_base_id()
+    base_text = get_base_text(text)
     layers,segment_annotaions = get_layers(text,base_id)
 
     opf = OpenPechaFS(
-        base= {base_id:text},
+        base= {base_id:base_text},
         layers = layers,
         meta = get_metadata()
     )
@@ -40,10 +50,9 @@ def get_layers(text,base_id):
     segmentation_annotaions.update({base_id:segment_annotation})
     return layers,segment_annotation
 
-def get_segmentation_layers(text):
+def get_segmentation_layers(text_list):
     segment_annotations = {}
     char_walker = 0
-    text_list = convert_text_to_list(text)
 
     for text in text_list:
         segment_annotation,char_walker = get_segment_annotation(text,char_walker)
@@ -58,7 +67,7 @@ def get_segment_annotation(text,char_walker):
     segment_annotation = {
         uuid4().hex:Page(span=Span(start=char_walker,end=char_walker+len(text)))
     }
-    char_walker+=len(text)+2
+    char_walker+=len(text)+1
 
     return segment_annotation,char_walker
 
@@ -70,10 +79,7 @@ def get_metadata():
     return instance_meta
 
 def is_aligned(text1,text2):
-    text1_list = convert_text_to_list(text1)
-    text2_list = convert_text_to_list(text2)
-
-    if len(text1_list) == len(text2_list):
+    if len(text1) == len(text2):
         return True
     else:
         return False

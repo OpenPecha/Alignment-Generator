@@ -3,7 +3,7 @@ from ctypes import alignment
 from distutils.spawn import spawn
 import json
 from pathlib import Path
-from create_opa import from_yaml
+from create_opa import from_yaml, toyaml
 
 def get_alignments(alignment_id):
     opa_dir = "./root/opas"
@@ -87,7 +87,54 @@ def get_layers(opf):
         segment_yml = from_yaml(Path(layer/"Segment.yml"))
         yield segment_yml,layer.stem
 
+def get_alignment_chojuk(alignment):
+    segment_sources = alignment["segment_sources"].keys()
+    source,target = segment_sources
+    seg_pairs = alignment["segment_pairs"]
+    alignments = []
+    for alignent_id in seg_pairs:
+        print(alignent_id)
+        source_seg_id = seg_pairs[alignent_id][source]
+        target_seg_id = seg_pairs[alignent_id][target]
+        source_span = get_span(source_seg_id,source)
+        target_span  =get_span(target_seg_id,target)
+        alignments.append({
+            "source_segment":source_span,
+            "target_segment":target_span
+        })
+    json_view = {
+        "id": "A48897657",
+        "source": source_seg_id,
+        "target": target_seg_id,
+        "type": "text",
+        "alignment":alignments
+        }    
+
+    return json_view    
+
+def get_span(seg_id,pecha_id):
+    segment_layer_paths = list(Path(f"./opf/{pecha_id}/{pecha_id}.opf/layers").iterdir())
+    for segment_layer_path in segment_layer_paths:
+        segment_layer = from_yaml(Path(segment_layer_path / "Segment.yml"))
+        if span := check_span(segment_layer,seg_id):
+            return span
+
+def check_span(segment_layer,seg_id):
+    annotations = segment_layer["annotations"]
+    if seg_id in annotations.keys():
+        span = annotations[seg_id]["span"]
+        return span
+    return 
+
+def main():
+    alignment = from_yaml(Path("opa/A48897657/A48897657.opa/Alignment.yml"))
+    json_view = get_alignment_chojuk(alignment)
+    json_view = json.dumps(json_view)
+    Path("./view.json").write_text(json_view)
+
 if __name__ == "__main__":
-    alignment_id ="1abfb4adf7c0403c84965af9a00f65f2"
-    view = get_alignments(alignment_id)
-    print(view)
+    main()
+    """ alignment_path = "opa/A48897657/A48897657.opa/Alignment.yml"
+    alignments = from_yaml(Path(alignment_path))
+    view = get_alignments(alignments)
+    print(view) """
