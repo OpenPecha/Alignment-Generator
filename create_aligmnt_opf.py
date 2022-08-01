@@ -37,7 +37,6 @@ def create_opf(text):
         meta = get_metadata()
     )
     opf_path = opf.save(output_path="./opf")
-    print(opf_path)
     return segment_annotaions,opf_path.stem
 
 def get_layers(text,base_id):

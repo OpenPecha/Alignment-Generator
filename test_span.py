@@ -1,5 +1,5 @@
 from pathlib import Path
 
-base_text = Path("opf/I4ACC0C26/I4ACC0C26.opf/base/00A0.txt").read_text()
+base_text = Path("opf/I8FF172CF/I8FF172CF.opf/base/B2B4.txt").read_text()
 
-print(base_text[352:499])
+print(base_text[88:139])

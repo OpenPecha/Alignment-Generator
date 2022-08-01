@@ -1,3 +1,4 @@
+from ctypes import alignment
 from uuid import uuid4
 from openpecha.core.pecha import OpenPechaFS
 from openpecha.core.metadata import InitialPechaMetadata,InitialCreationType
@@ -13,9 +14,14 @@ def toyaml(dict):
     return yaml.safe_dump(dict, sort_keys=False, allow_unicode=True)
 
 def split_text(path):
-    s = open(path, mode='r', encoding='utf-8-sig').read()
-    open(path, mode='w', encoding='utf-8').write(s)
-    chunk_text = Path(path).read_text()
+    print(path)
+    try:
+        s = open(path, mode='r', encoding='utf-8-sig').read()
+        open(path, mode='w', encoding='utf-8').write(s)
+        chunk_text = Path(path).read_text()
+    except:
+        chunk_text = Path(path).read_text(encoding="utf-16")
+         
     splitted_text = re.split("\n",chunk_text)
     cleaned_splitted_text = clean_text(splitted_text)
     return cleaned_splitted_text
@@ -86,11 +92,13 @@ def create_opf(splitted_text,folder,file):
         meta = get_metadata(folder,file)
     )
     opf_path = opf.save(output_path="./opf")
+    print(opf_path.stem)
     return segment_annotaions,opf_path.stem
 
 def create_opa(**kwargs):
     alignments = {}
     alignment_id = get_alignment_id()
+    print(alignment_id)
     segment_sources = {
         kwargs["root_id"]:{
             "title":kwargs["root_title"],
@@ -103,12 +111,29 @@ def create_opa(**kwargs):
             "language":"bo"
         }
     }
+    opa_meta = get_opa_meta(alignment_id,kwargs["folder"])
     seg_pairs = get_segment_pairs(**kwargs)
     alignments.update({"segment_sources":segment_sources})
     alignments.update({"segment_pairs":seg_pairs})
     alignments_yml = toyaml(alignments)
+    meta_yml = toyaml(opa_meta)
     Path(f"./opa/{alignment_id}/{alignment_id}.opa/").mkdir(parents=True, exist_ok=True)
     Path(f"./opa/{alignment_id}/{alignment_id}.opa/Alignment.yml").write_text(alignments_yml)
+    Path(f"./opa/{alignment_id}/{alignment_id}.opa/meta.yml").write_text(meta_yml)
+    print(len(seg_pairs))
+
+def get_opa_meta(alignment_id,source):
+    meta = {
+        "id":alignment_id,
+        "source":source,
+        "source_metadata":{
+            "title":"chojuk",
+            "creation_method":"proof read",
+            "langugae":"bo"
+        }
+    }
+    return meta
+
 
 def get_segment_pairs(**kwargs):
     segment_pairs = {}
@@ -126,14 +151,14 @@ def get_segment_pairs(**kwargs):
 
 
 def main():
-    folder= "D3872-final"
-    root_text = "chojuk-alignement/D3872-final/ཐུན་མོང་གི་རྩ་བ།.txt"
-    commentary_text = "chojuk-alignement/D3872-final/Commentary.txt"
+    folder= "D3879final"
+    root_text = "chojuk-alignement/D3879-final/ཐུང་མོང་གི་རྩ་བ།txt"
+    commentary_text = "chojuk-alignement/D3879-final/Commentary.txt"
     splitted_text_root = split_text(root_text)
     splitted_text_commentary = split_text(commentary_text)
     root_annotations,root_id = create_opf(splitted_text_root,folder,Path(root_text).stem)
     commnetary_annotations,commentary_id = create_opf(splitted_text_commentary,folder,Path(commentary_text).stem)
-    create_opa(ra = root_annotations,ca = commnetary_annotations,root_title = Path(root_text).stem,commentary_title = Path(commentary_text).stem,root_id = root_id,commentary_id =commentary_id)
+    create_opa(ra = root_annotations,ca = commnetary_annotations,root_title = Path(root_text).stem,commentary_title = Path(commentary_text).stem,root_id = root_id,commentary_id =commentary_id,folder =folder)
 
 if __name__ == "__main__":
     main()
