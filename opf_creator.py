@@ -152,8 +152,8 @@ def get_segment_pairs(**kwargs):
 
 def main():
     folder= "D3879final"
-    root_text = "chojuk-alignement/D3879-final/ཐུང་མོང་གི་རྩ་བ།txt"
-    commentary_text = "chojuk-alignement/D3879-final/Commentary.txt"
+    root_text = "chojuk-alignement/D3880-final/ཐུན་མོང་གི་རྩ་བ།.txt"
+    commentary_text = "chojuk-alignement/D3880-final/Commentary.txt"
     splitted_text_root = split_text(root_text)
     splitted_text_commentary = split_text(commentary_text)
     root_annotations,root_id = create_opf(splitted_text_root,folder,Path(root_text).stem)
